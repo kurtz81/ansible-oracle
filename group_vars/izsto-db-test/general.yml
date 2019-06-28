@@ -1,0 +1,4 @@
+#GENERAL VAR
+proxy_env:
+  http_proxy: http://proxy.izsto.it:8080
+  https_proxy: http://proxy.izsto.it:8080

@@ -1,0 +1,36 @@
+---
+  hostgroup: vbox-si-fs
+
+  install_from_nfs: false
+  oracle_sw_copy: True
+  oracle_sw_unpack: True
+  oracle_stage: /u01/stage
+  oracle_stage_remote: /media/swrepo
+  autostartup_service: true
+  oracle_sw_source_local: /tmp
+  is_sw_source_local: True
+
+  configure_ntp: false
+  configure_motd: true
+  configure_host_disks: false
+
+  install_os_packages: True
+  configure_epel_repo: True
+  configure_public_yum_repo: false
+  disable_selinux: True
+
+  disable_EE_options: False
+
+  host_fs_layout:
+   - vgname: vgora
+     state: present
+     filesystem:
+       - {mntp: /u01, lvname: lvora, lvsize: 100%FREE, fstype: ext4}
+     disk:
+       - {device: /dev/sdb, pvname: /dev/sdb1}
+   - vgname: vgoradata
+     state: present
+     filesystem:
+       - {mntp: /u02, lvname: lvoradata, lvsize: 100%FREE, fstype: xfs}
+     disk:
+       - {device: /dev/sdc, pvname: /dev/sdc1}

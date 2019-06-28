@@ -1,0 +1,4 @@
+#GENERAL VAR
+proxy_env:
+  http_proxy: http://localhost:8081
+  https_proxy: http://localhost:8081

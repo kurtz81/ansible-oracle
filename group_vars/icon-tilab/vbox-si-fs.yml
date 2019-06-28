@@ -1,0 +1,44 @@
+---
+  hostgroup: vbox-si-fs
+  master_node: true
+
+  install_from_nfs: false
+  nfs_server_sw: localhost
+  nfs_server_sw_path: /data/ORACLE_12c/db/rel1
+ 
+  oracle_sw_copy: True
+  oracle_sw_unpack: True
+  oracle_stage: /u01/stage
+  oracle_stage_remote: /media/swrepo
+  autostartup_service: true
+  oracle_sw_source_local: /data/ORACLE_12c/db/rel1
+  is_sw_source_local: true
+  oracle_sw_source_www: http://localhost:8082/rel1
+
+  configure_ntp: false
+  configure_motd: true
+  configure_host_disks: True
+
+  install_os_packages: True
+  configure_epel_repo: True
+  configure_public_yum_repo: false
+  disable_selinux: True
+
+  disable_EE_options: False
+
+  oracle_cleanup_days: 90
+  oracle_trace_cleanup_days: 90
+
+  host_fs_layout:
+   - vgname: vgora
+     state: present
+     filesystem:
+       - {mntp: /u01, lvname: lvora, lvsize: 100%FREE, fstype: ext4}
+     disk:
+       - {device: /dev/sdb, pvname: /dev/sdb1}
+   - vgname: vgoradata
+     state: present
+     filesystem:
+       - {mntp: /u01/app/oracle/oradata, lvname: lvoradata, lvsize: 100%FREE, fstype: xfs}
+     disk:
+       - {device: /dev/sdc, pvname: /dev/sdc1}
