@@ -1,0 +1,149 @@
+@@@@@@@@@@@@@@@
+!!!! cambiare i dischi su ansible e verificare compatibilita !!!!
+@@@@@@@@@@@@@@@
+
+@@@@@@@@@@@@@@@
+!!!! attenzione ai diskgroup data e fra prima dell'installazione del db !!!!
+@@@@@@@@@@@@@@@
+
+
+
+### PREPARAZIONE
+
+ansible-playbook --tags "common" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+ansible-playbook --tags "oscheck" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+ansible-playbook --tags "iptables,selinux,etchosts" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+ansible-playbook --tags "group,user,usergrid,sshkeys" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+######## NON FARE NON NECESSARIO /u01 sara' dentro il disco del SO  ##### 
+ansible-playbook --tags "hostfs" -i inventory/apns_collaudo rac-full-install-apns-coll.yml  ### SOLO SE DISCO SW SEPARATO DA OS ###
+######## NON FARE NON NECESSARIO /u01 sara' dentro il disco del SO  ##### 
+
+
+ansible-playbook --tags "sysctl,pamconfig,seclimit,tphnuma,eth1" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+ansible-playbook --tags "stagedir" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+    yum install kmod-oracleasm.x86_64
+    yum localinstall oracleasmlib-2.0.12-1.el7.x86_64.rpm
+    yum localinstall oracleasm-support-2.1.8-3.el7.x86_64.rpm
+
+######## CONTROLLARE PERMESSI DISCHI ASM (grid:asmdba) ##### 
+ansible-playbook --tags "asmlibconfig" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+ansible-playbook --tags "asmstorage" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+######## NON FARE NON NECESSARIO ##### 
+ansible-playbook --tags "kpartx" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+######## NON FARE NON NECESSARIO ##### 
+
+### CLUSTER
+
+
+
+ansible-playbook --tags "checkifgiinstall" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+# SALTATO NO NFS #ansible-playbook --tags "nfsmountgi" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifgiinstall,dotprofilegi,directories" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+# SALTATO IL SW E' GIA' SULLA MACCHINA # ansible-playbook --tags "oragridsw" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "oragridswunpack" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "cvuqdisk" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifgiinstall,responsefilegi" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifgiinstall,oragridinstall" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifgiinstall,runrootgi" -i inventory/apns_collaudo rac-full-install-apns-coll.yml 
+ansible-playbook --tags "checkifgiinstall,runrootgiothers" -i inventory/apns_collaudo rac-full-install-apns-coll.yml 
+
+ansible-playbook --tags "checkifgiinstall,responsefileconfigtool,runconfigtool" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifgiinstall,crsctl" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+ansible-playbook --tags "checkifgiinstall,updatenodelist" -i inventory/apns_collaudo rac-full-install-apns-coll.yml ### VERIFICARE ERRORE ####
+ansible-playbook --tags "checkifgiinstall,glogingi,opatchlsgi" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+### NON E' FLEX QUINDI NON NECESSARIO #### ansible-playbook --tags "checkifgiinstall,olsnodes" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+# SALTATO NO NFS #ansible-playbook --tags "nfsunmountgi" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+!!!!!!!!!!!!!! eseguire cambio risoluzione dns vim /etc/nsswitch.conf !!!!!!!!!!!!!!
+
+### ASM PER I DISCHI
+
+### NON NECESSARIO SE I DISCHI SONO GIA' CREATI
+ansible-playbook --tags "asmcaa,asmca,srvctlasm" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+
+### DATABASE
+
+ansible-playbook --tags "checkifdbinstall" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+# SALTATO NO NFS #ansible-playbook --tags "nfsmountdb" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifdbinstall,dotprofiledb,orainst,directoriesdb" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+# NON NECESSARIO SE SW GIA' SULLA MACCHINA #ansible-playbook --tags "oradbsw,oradbswunpack" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+ansible-playbook --tags "checkifdbinstall,responsefileswdb" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifdbinstall,oradbinstall" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkifdbinstall,runroot" -i inventory/apns_collaudo rac-full-install-apns-coll.yml 
+
+ansible-playbook --tags "checkifdbinstall,glogindb,opatchls" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+#############################################################################
+!!!!!!!!!! EVENTUALMENTE APPLICARE QUI LE PATCH DEL DATABASE ORACLE !!!!!!!!!
+#############################################################################
+
+# SALTATO NO NFS # ansible-playbook --tags "nfsunmountdb" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+#### INUTILE PERCHE' IL CLUSTER AVVIA IN AUTOMATICO LE ISTANZE ###
+ansible-playbook --tags "checkinitdaemons,autostartup_service" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+#### INUTILE PERCHE' IL CLUSTER AVVIA IN AUTOMATICO LE ISTANZE ###
+
+#### INUTILE PERCHE' IL GRID HA GIA' I LISTENER CONFIGURATI ###
+ansible-playbook --tags "set_fact,listener,listener_install,responsefile_netca" -i inventory/apns_collaudo rac-full-install-apns-coll.yml 
+#### INUTILE PERCHE' IL GRID HA GIA' I LISTENER CONFIGURATI ###
+
+@@@@@@@@@@@@@@@@@@@
+QUIIIIIIIIIIIII
+@@@@@@@@@@@@@@@@@@@
+
+ansible-playbook --tags "getAllVars,checkifdbexists,dbcaresponse" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "getAllVars,checkifdbexists,dbcaresponse,oradbcreate" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "dotprofile_db,update_oratab" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "psout" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "logrotate" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+### DATABASE - PLUGGABLE
+
+ansible-playbook --tags "getAllVars,checkifdbexists,dbcaresponseplug,oradbcreatePluggable" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+### RMAN #####
+
+
+### EXPDP #####
+
+
+ansible-playbook --tags "expdpdir,expdpscript" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "expdpdbintnew,expdpdbintentry" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+ansible-playbook --tags "checkusysinit,expdpscrontab" -i inventory/apns_collaudo rac-full-install-apns-coll.yml
+
+
+
+

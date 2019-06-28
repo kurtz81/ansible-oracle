@@ -1,0 +1,54 @@
+
+
+
+### DATABASE
+
+ansible-playbook --tags "checkifdbinstall" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+# SALTATO NO NFS #ansible-playbook --tags "nfsmountdb" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "checkifdbinstall,dotprofiledb,orainst,directoriesdb" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+# NON NECESSARIO SE SW GIA' SULLA MACCHINA #ansible-playbook --tags "oradbsw,oradbswunpack" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+
+ansible-playbook --tags "checkifdbinstall,responsefileswdb" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "checkifdbinstall,oradbinstall" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "checkifdbinstall,runroot" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml 
+
+ansible-playbook --tags "checkifdbinstall,glogindb,opatchls" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+#############################################################################
+!!!!!!!!!! EVENTUALMENTE APPLICARE QUI LE PATCH DEL DATABASE ORACLE !!!!!!!!!
+#############################################################################
+
+# SALTATO NO NFS # ansible-playbook --tags "nfsunmountdb" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+#### INUTILE PERCHE' IL CLUSTER AVVIA IN AUTOMATICO LE ISTANZE ###
+ansible-playbook --tags "checkinitdaemons,autostartup_service" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+#### INUTILE PERCHE' IL CLUSTER AVVIA IN AUTOMATICO LE ISTANZE ###
+
+#### INUTILE PERCHE' IL GRID HA GIA' I LISTENER CONFIGURATI ###
+ansible-playbook --tags "set_fact,listener,listener_install,responsefile_netca" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml 
+#### INUTILE PERCHE' IL GRID HA GIA' I LISTENER CONFIGURATI ###
+
+@@@@@@@@@@@@@@@@@@@
+QUIIIIIIIIIIIII
+@@@@@@@@@@@@@@@@@@@
+
+ansible-playbook --tags "getAllVars,checkifdbexists,dbcaresponse" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "getAllVars,checkifdbexists,dbcaresponse,oradbcreate" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "dotprofile_db,update_oratab" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "psout" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+ansible-playbook --tags "logrotate" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+
+### DATABASE - PLUGGABLE
+
+ansible-playbook --tags "getAllVars,checkifdbexists,dbcaresponseplug,oradbcreatePluggable" -i inventory/apns_collaudo rac-only-instance-install-apns-coll.yml
+

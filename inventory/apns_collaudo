@@ -1,0 +1,25 @@
+# This is the default ansible 'hosts' file.
+#
+# It should live in /etc/ansible/hosts
+#
+#   - Comments begin with the '#' character
+#   - Blank lines are ignored
+#   - Groups of hosts are delimited by [header] elements
+#   - You can enter hostnames or ip addresses
+#   - A hostname/ip can be a member of multiple groups
+
+
+
+[apnscollaudo]
+apn-db1-c ansible_user=root ansible_ssh_pass=qwe123
+#apn-db2-c ansible_user=root ansible_ssh_pass=qwe123
+
+#[oraha]
+#192.168.1.200
+#192.168.1.201
+
+#[orafs]
+#192.168.1.200
+#192.168.1.201
+
+# vim: ts=2 sw=2 expandtab
