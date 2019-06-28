@@ -29,7 +29,7 @@ responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v12.2.0
 # Default value : None
 # Mandatory     : Yes
 #-----------------------------------------------------------------------------
-gdbName={{ item.0.oracle_db_name }}
+gdbName={{ db_obj_item0.oracle_db_name }}
 
 #-----------------------------------------------------------------------------
 # Name          : sid
@@ -39,7 +39,7 @@ gdbName={{ item.0.oracle_db_name }}
 # Default value : <db_name> specified in GDBNAME
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-sid={{ item.0.oracle_db_instance_name | default(item.0.oracle_db_name) }}
+sid={{ db_obj_item0.oracle_db_instance_name | default(db_obj_item0.oracle_db_name) }}
 
 #-----------------------------------------------------------------------------
 # Name          : databaseConfigType
@@ -49,7 +49,7 @@ sid={{ item.0.oracle_db_instance_name | default(item.0.oracle_db_name) }}
 # Default value : SI
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-databaseConfigType={{ item.0.oracle_db_type }}
+databaseConfigType={{ db_obj_item0.oracle_db_type }}
 
 #-----------------------------------------------------------------------------
 # Name          : RACOneNodeServiceName
@@ -60,8 +60,8 @@ databaseConfigType={{ item.0.oracle_db_type }}
 # Default value : None
 # Mandatory     : No [required in case DATABASECONFTYPE is set to RACONENODE ]
 #-----------------------------------------------------------------------------
-{% if item.0.oracle_db_type|upper == 'RACONENODE' %}
-RACOneNodeServiceName={{ item.0.service_name }}
+{% if db_obj_item0.oracle_db_type|upper == 'RACONENODE' %}
+RACOneNodeServiceName={{ db_obj_item0.service_name }}
 {% else %}
 #RACOneNodeServiceName =
 {% endif %}
@@ -163,7 +163,7 @@ RACOneNodeServiceName={{ item.0.service_name }}
 # Default value : false
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-createAsContainerDatabase={% if item.0.is_container is defined %}{{ item.0.is_container }}{% endif %}
+createAsContainerDatabase={% if db_obj_item0.is_container is defined %}{{ db_obj_item0.is_container }}{% endif %}
 
 #-----------------------------------------------------------------------------
 # Name          : numberOfPDBs
@@ -173,11 +173,7 @@ createAsContainerDatabase={% if item.0.is_container is defined %}{{ item.0.is_co
 # Default value : 0
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if item.0.create_pdb %}
-numberOfPDBs={% if item.0.is_container and item.0.num_pdbs is defined %}{{ item.0.num_pdbs }}{%endif%}
-{% else %}
-numberOfPDBs=0
-{%endif%}
+numberOfPDBs={% if db_obj_item0.is_container and db_obj_item0.num_pdbs is defined %}{{ db_obj_item0.num_pdbs }}{%endif%}
 
 #-----------------------------------------------------------------------------
 # Name          : pdbName
@@ -187,7 +183,7 @@ numberOfPDBs=0
 # Default value : None
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-pdbName={% if item.0.is_container and item.0.pdb_prefix is defined %}{{ item.0.pdb_prefix }}{%endif%}
+pdbName={% if db_obj_item0.is_container and db_obj_item0.pdb_prefix is defined %}{{ db_obj_item0.pdb_prefix }}{%endif%}{% if db_obj_item0.is_container and plug_item.name is defined %}{{ plug_item.name }}{%endif%}
 
 #-----------------------------------------------------------------------------
 # Name          : useLocalUndoForPDBs
@@ -207,10 +203,10 @@ useLocalUndoForPDBs=true
 # Default value : None
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if dbpasswords is defined and dbpasswords[item.0.oracle_db_name]is defined and dbpasswords[item.0.oracle_db_name]['pdbadmin'] is defined%}
-pdbAdminPassword={{dbpasswords[item.0.oracle_db_name]['pdbadmin']}}
+{% if dbpasswords is defined and dbpasswords[db_obj_item0.oracle_db_name]is defined and dbpasswords[db_obj_item0.oracle_db_name]['pdbadmin'] is defined%}
+pdbAdminPassword={{dbpasswords[db_obj_item0.oracle_db_name]['pdbadmin']}}
 {% else %}
-pdbAdminPassword={{default_dbpass }}
+pdbAdminPassword={{ default_dbpass_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -221,10 +217,10 @@ pdbAdminPassword={{default_dbpass }}
 # Default value : None
 # Mandatory     : No (Yes for RAC database-centric database )
 #-----------------------------------------------------------------------------
-{% if configure_cluster and item.0.oracle_db_type|upper != "SI" and item.0.oracle_db_type|upper != "SIFO"  and oracle_gi_cluster_type |upper == 'FLEX' %}
-nodelist={% for host in groups[hostgroup_hub] -%} {{host}} {%- if not loop.last -%} , {%- endif -%} {%- endfor %}
-{% elif configure_cluster and item.0.oracle_db_type|upper != "SI" and item.0.oracle_db_type|upper != "SIFO"  and oracle_gi_cluster_type |upper != 'FLEX' %}
-nodelist={% for host in groups[hostgroup] -%} {{host}} {%- if not loop.last -%} , {%- endif -%} {%- endfor %}
+{% if configure_cluster and db_obj_item0.oracle_db_type|upper != "SI" and db_obj_item0.oracle_db_type|upper != "SIFO"  and oracle_gi_cluster_type |upper == 'FLEX' %}
+nodelist={% for host in groups[hostgroup_hub] | default([]) -%} {{host}} {%- if not loop.last -%} , {%- endif -%} {%- endfor %}
+{% elif configure_cluster and db_obj_item0.oracle_db_type|upper != "SI" and db_obj_item0.oracle_db_type|upper != "SIFO"  and oracle_gi_cluster_type |upper != 'FLEX' %}
+nodelist={% for host in groups[hostgroup] | default([]) -%} {{host}} {%- if not loop.last -%} , {%- endif -%} {%- endfor %}
 {% else %}
 #NODELIST=
 {% endif %}
@@ -237,8 +233,8 @@ nodelist={% for host in groups[hostgroup] -%} {{host}} {%- if not loop.last -%} 
 # Default value : None
 # Mandatory     : Yes
 #-----------------------------------------------------------------------------
-{% if item.0.dbca_templatename is defined %}
-templateName={{item.0.dbca_templatename}}
+{% if db_obj_item0.dbca_templatename is defined %}
+templateName={{db_obj_item0.dbca_templatename}}
 {% else %}
 templateName={{dbca_templatename}}
 {% endif %}
@@ -251,10 +247,10 @@ templateName={{dbca_templatename}}
 # Default value : None
 # Mandatory     : Yes
 #-----------------------------------------------------------------------------
-{% if dbpasswords is defined and dbpasswords[item.0.oracle_db_name]is defined and dbpasswords[item.0.oracle_db_name]['sys'] is defined %}
-sysPassword={{dbpasswords[item.0.oracle_db_name]['sys']}}
+{% if dbpasswords is defined and dbpasswords[db_obj_item0.oracle_db_name]is defined and dbpasswords[db_obj_item0.oracle_db_name]['sys'] is defined %}
+sysPassword={{dbpasswords[db_obj_item0.oracle_db_name]['sys']}}
 {% else %}
-sysPassword={{default_dbpass }}
+sysPassword={{ default_dbpass_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -265,10 +261,10 @@ sysPassword={{default_dbpass }}
 # Default value : None
 # Mandatory     : Yes
 #-----------------------------------------------------------------------------
-{% if dbpasswords is defined and dbpasswords[item.0.oracle_db_name] is defined and dbpasswords[item.0.oracle_db_name]['system'] is defined %}
-systemPassword={{dbpasswords[item.0.oracle_db_name]['system']}}
+{% if dbpasswords is defined and dbpasswords[db_obj_item0.oracle_db_name] is defined and dbpasswords[db_obj_item0.oracle_db_name]['system'] is defined %}
+systemPassword={{dbpasswords[db_obj_item0.oracle_db_name]['system']}}
 {% else %}
-systemPassword={{default_dbpass }}
+systemPassword={{ default_dbpass_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -321,10 +317,10 @@ runCVUChecks=false
 # Mandatory     : Yes, if emConfiguration is specified or
 #                 the value of runCVUChecks is TRUE
 #-----------------------------------------------------------------------------
-{% if dbpasswords is defined and dbpasswords[item.0.oracle_db_name] is defined and dbpasswords[item.0.oracle_db_name]['dbsnmp'] is defined %}
-dbsnmpPassword={{dbpasswords[item.0.oracle_db_name]['dbsnmp']}}
+{% if dbpasswords is defined and dbpasswords[db_obj_item0.oracle_db_name] is defined and dbpasswords[db_obj_item0.oracle_db_name]['dbsnmp'] is defined %}
+dbsnmpPassword={{dbpasswords[db_obj_item0.oracle_db_name]['dbsnmp']}}
 {% else %}
-dbsnmpPassword={{default_dbpass }}
+dbsnmpPassword={{ default_dbpass_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -441,10 +437,10 @@ datafileJarLocation={ORACLE_HOME}/assistants/dbca/templates/
 # Default value : $ORACLE_BASE/oradata
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if item.0.datafile_dest is defined %}
-datafileDestination={{ item.0.datafile_dest }}
+{% if db_obj_item0.datafile_dest is defined %}
+datafileDestination={{ db_obj_item0.datafile_dest }}
 {% else %}
-datafileDestination={{ datafile_dest }}
+datafileDestination={{ datafile_dest_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -455,10 +451,10 @@ datafileDestination={{ datafile_dest }}
 # Default value : $ORACLE_BASE/flash_recovery_area
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if item.0.recoveryfile_dest is defined %}
-recoveryAreaDestination={{ item.0.recoveryfile_dest }}
+{% if db_obj_item0.recoveryfile_dest is defined %}
+recoveryAreaDestination={{ db_obj_item0.recoveryfile_dest }}
 {% else %}
-recoveryAreaDestination={{ recoveryfile_dest }}
+recoveryAreaDestination={{ recoveryfile_dest_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -469,7 +465,7 @@ recoveryAreaDestination={{ recoveryfile_dest }}
 # Default value : FS
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-storageType={{ item.0.storage_type }}
+storageType={{ db_obj_item0.storage_type }}
 
 #-----------------------------------------------------------------------------
 # Name          : diskGroupName
@@ -478,10 +474,10 @@ storageType={{ item.0.storage_type }}
 # Default value : DATA
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if item.0.datafile_dest is defined %}
-diskGroupName={{ item.0.datafile_dest }}
+{% if db_obj_item0.datafile_dest is defined %}
+diskGroupName={{ db_obj_item0.datafile_dest }}
 {% else %}
-diskGroupName={{ datafile_dest }}
+diskGroupName={{ datafile_dest_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -500,10 +496,10 @@ asmsnmpPassword={%if asmmonitorpassword is defined %}{{asmmonitorpassword}}{% el
 # Default value : RECOVERY
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if item.0.recoveryfile_dest is defined %}
-recoveryGroupName={{ item.0.recoveryfile_dest }}
+{% if db_obj_item0.recoveryfile_dest is defined %}
+recoveryGroupName={{ db_obj_item0.recoveryfile_dest }}
 {% else %}
-recoveryGroupName={{ recoveryfile_dest }}
+recoveryGroupName={{ recoveryfile_dest_plug }}
 {% endif %}
 
 #-----------------------------------------------------------------------------
@@ -514,8 +510,8 @@ recoveryGroupName={{ recoveryfile_dest }}
 # Default value : "US7ASCII"
 # Mandatory     : NO
 #-----------------------------------------------------------------------------
-{% if item.0.characterset is defined %}
-characterSet={{ item.0.characterset }}
+{% if db_obj_item0.characterset is defined %}
+characterSet={{ db_obj_item0.characterset }}
 {% else %}
 characterSet=AL32UTF8
 {% endif %}
@@ -528,8 +524,8 @@ characterSet=AL32UTF8
 # Default value : "AL16UTF16"
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-{% if item.0.ncharacterset is defined %}
-nationalCharacterSet= "{{ item.0.ncharacterset }}"
+{% if db_obj_item0.ncharacterset is defined %}
+nationalCharacterSet= "{{ db_obj_item0.ncharacterset }}"
 {% else %}
 nationalCharacterSet=AL16UTF16
 {% endif %}
@@ -609,8 +605,8 @@ variablesFile=
 # Default value : None
 # Mandatory     : NO
 #-----------------------------------------------------------------------------
-{% if item.0.oracle_init_params is defined %}
-initParams={{ item.0.oracle_init_params }}
+{% if db_obj_item0.oracle_init_params is defined %}
+initParams={{ db_obj_item0.oracle_init_params }}
 {% else %}
 #initParams =
 {% endif %}
@@ -631,8 +627,8 @@ sampleSchema=false
 # Default value : None
 # Mandatory     : NO
 #-----------------------------------------------------------------------------
-{% if item.0.oracle_db_mem_percent is defined %}
-memoryPercentage={{ item.0.oracle_db_mem_percent }}
+{% if db_obj_item0.oracle_db_mem_percent is defined %}
+memoryPercentage={{ db_obj_item0.oracle_db_mem_percent }}
 {% else %}
 #memoryPercentage =
 {% endif %}
@@ -645,7 +641,7 @@ memoryPercentage={{ item.0.oracle_db_mem_percent }}
 # Default value : MULTIPURPOSE
 # Mandatory     : NO
 #-----------------------------------------------------------------------------
-databaseType={{ item.0.oracle_database_type }}
+databaseType={{ db_obj_item0.oracle_database_type }}
 
 #-----------------------------------------------------------------------------
 # Name          : automaticMemoryManagement
@@ -665,8 +661,8 @@ automaticMemoryManagement=false
 # Default value :
 # Mandatory     : NO
 #-----------------------------------------------------------------------------
-{% if item.0.oracle_db_mem_totalmb is defined %}
-totalMemory={{ item.0.oracle_db_mem_totalmb }}
+{% if db_obj_item0.oracle_db_mem_totalmb is defined %}
+totalMemory={{ db_obj_item0.oracle_db_mem_totalmb }}
 {% else %}
 #totalMemory =
 {% endif %}

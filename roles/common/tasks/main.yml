@@ -17,24 +17,33 @@
 #     - "~/.ssh/authorized_keys"
 #    tags:
 #     - keys
-
+#
+  - name: Check hostname of machine
+    debug: 
+      msg: "{{ ansible_hostname }}"
+    tags:
+     - check_hostname
+ 
   - name: Install EPEL Repo
     yum: name={{ epel_rpm }} state=installed
     when: configure_epel_repo and ansible_os_family == 'RedHat'
     tags:
      - epelrepo
+     - common
 
   - name: Get newest repo-file for OL (public-yum)
     get_url: dest={{ repo_dir}}/{{ ol_repo_file }}  url=http://public-yum.oracle.com/{{ ol_repo_file }} backup=yes
     when: configure_public_yum_repo and ansible_distribution == 'OracleLinux'
     tags:
      - ol6repo
+     - common
 
   - name: Install common packages OL/RHEL
     yum: name={{ common_packages }} state=installed
     when: install_os_packages and ansible_os_family == 'RedHat'
     tags:
       - commonpackages
+      - common
 
   - name: Install common packages SLES12
     zypper: name={{ item }} state=installed
@@ -42,12 +51,19 @@
     when: install_os_packages and ansible_os_family == 'Suse'
     tags:
       - commonpackages
+      - common
 
   - name: Start and enable NTP
     service: name=ntpd  state=started  enabled=yes
+    tags: 
+      - ntp
+      - common
     when: configure_ntp
 
   - name: Add motd
     template: src=motd.j2 dest=/etc/motd
-    tags: motd
+    tags: 
+      - motd
+      - common
     when: configure_motd
+# vim: ts=2 sw=2 expandtab

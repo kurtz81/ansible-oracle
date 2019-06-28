@@ -113,3 +113,18 @@
   - debug: var=psout.stdout_lines
     tags:
      - psout
+
+  - name: test pluggable
+    tags:
+      - oradbcreatePluggable
+    vars:
+      db_obj_item0: "{{ db_item[0] }}"
+      stdout_item1: "{{ db_item[1].stdout }}"
+    include_role:
+      name: oradb-create
+      tasks_from: pluggable
+    with_together:
+      - "{{oracle_databases}}"
+      - "{{checkdbexist.results}}"
+    loop_control:
+      loop_var: db_item

@@ -1,0 +1,82 @@
+---
+
+  - block:
+    - name: Check if database pluggable is already created
+      shell: source {{ oracle_user_home }}/.profile_{{ db_obj_item0.oracle_db_name }}; echo "SELECT NAME FROM v\$pdbs where NAME = '{{ db_obj_item0.pdb_prefix }}{{ plug_item.name }}';" | sqlplus -S / as sysdba | grep {{ db_obj_item0.pdb_prefix }} | wc -l
+      with_items:
+         - "{{ db_obj_item0.list_pluggable }}"
+      loop_control:
+        loop_var: plug_item
+      become: yes
+      become_user: "{{ oracle_user }}"
+      when: db_obj_item0.num_pdbs | int > 0 and (groups['all'][0] == ansible_hostname or not configure_cluster)
+      tags:
+      - checkifdbplugexists
+      register: checkdbplugexist
+
+    - name: Check if database pluggable is already created (RESULT)
+      debug:
+        msg: "checkdbplugexist results = {{ checkdbplugexist.results }}"
+      tags:
+      - checkifdbplugexists
+ 
+    - name: Create dir for data of pluggable
+      file: dest={{ db_obj_item0.datafile_dest }}/{{ db_obj_item0.pdb_prefix }}{{ plug_item.0.name }} mode=750 owner={{ oracle_user }} group={{ oracle_group }} state=directory
+      with_together:
+         - "{{ db_obj_item0.list_pluggable }}"
+         - "{{checkdbplugexist.results}}"
+      loop_control:
+        loop_var: plug_item
+      when: plug_item.1.stdout != "1" and db_obj_item0.num_pdbs | int > 0 and (groups['all'][0] == ansible_hostname or not configure_cluster)
+      tags:
+        - oradbcreatePluggable
+
+#    - name: Create responsefile for dbca create pluggable
+#      vars:
+#        dbca_operation: createPluggableDatabase
+#      template: src=dbca-create-db-plug.rsp.{{ db_obj_item0.oracle_version_db }}.j2 dest={{ oracle_rsp_stage }}/{{ db_obj_item0.oracle_db_name }}_{{ db_obj_item0.pdb_prefix }}{{ plug_item.name }}.rsp  owner={{ oracle_user }} group={{ oracle_group }} mode=644 backup=no
+#      with_items:
+#         - "{{ db_obj_item0.list_pluggable }}"
+#      loop_control:
+#        loop_var: plug_item
+#      when: db_obj_item0.num_pdbs | int > 0 and (groups['all'][0] == ansible_hostname or not configure_cluster)
+#      tags:
+#        - dbcaresponseplug
+#
+#    - name: Create pluggable database(s)
+#      shell: "time {{ oracle_home_db_plug }}/bin/dbca -createPluggableDatabase -responseFile {{ oracle_rsp_stage }}/{{ db_obj_item0.oracle_db_name }}_{{ db_obj_item0.pdb_prefix }}{{ plug_item.name }}.rsp -silent"
+#      become: yes
+#      become_user: "{{ oracle_user }}"
+#      with_items:
+#         - "{{ db_obj_item0.list_pluggable }}"
+#      loop_control:
+#        loop_var: plug_item
+#      when: db_obj_item0.num_pdbs | int > 0 and (groups['all'][0] == ansible_hostname or not configure_cluster)
+#      tags:
+#        - oradbcreatePluggable
+#      register: oradbcreateplug
+
+    - name: Create pluggable database(s) direct
+      shell: "time {{ oracle_home_db_plug }}/bin/dbca -silent -createPluggableDatabase -sourceDB {{ db_obj_item0.oracle_db_name }} -pdbName {{ db_obj_item0.pdb_prefix }}{{ plug_item.0.name }} -createPDBFrom default -pdbAdminUserName {{ plug_item.0.usrAdmin }} -pdbAdminPassword {{ plug_item.0.pwdAdmin }} -createUserTableSpace true -pdbDatafileDestination {{ db_obj_item0.datafile_dest }}/{{ db_obj_item0.pdb_prefix }}{{ plug_item.0.name }}"
+      become: yes
+      become_user: "{{ oracle_user }}"
+      with_together:
+         - "{{ db_obj_item0.list_pluggable }}"
+         - "{{checkdbplugexist.results}}"
+      loop_control:
+        loop_var: plug_item
+      when: plug_item.1.stdout != "1" and plug_item.0.state |upper == "PRESENT" and db_obj_item0.num_pdbs | int > 0 and (groups['all'][0] == ansible_hostname or not configure_cluster)
+      tags:
+        - oradbcreatePluggable
+      register: oradbcreateplug
+
+    - debug: var=item
+      with_items:
+           - "{{ oradbcreateplug.results|map(attribute='stdout_lines')|list }}"
+      tags:
+       - oradbcreatePluggable
+      when: oradbcreateplug.changed and master_node and db_obj_item0.num_pdbs | int > 0 and (groups['all'][0] == ansible_hostname or not configure_cluster)
+      ignore_errors: true
+
+
+# vim: ts=2 sw=2 expandtab

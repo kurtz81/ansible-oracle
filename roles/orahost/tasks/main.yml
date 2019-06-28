@@ -8,6 +8,23 @@
         - "ansible_distribution_version | version_compare('{{ os_min_supported_version }}', '>=')"
     tags:
      - oscheck
+     - oschecksingle
+
+#  - name: Upgrade system on OL/RHEL
+#    yum:
+#       name: "*"
+#       state: latest
+#    when: ansible_os_family == 'RedHat'
+#    tags: os_upgrade, oscheck
+#
+  - name: Install packages preparatory required by Oracle on OL/RHEL
+    yum:
+       name: "{{ oracle_packages_prep }}"
+       state: installed
+       enablerepo: "{{ extrarepos_enabled |default (omit, True) }}"
+       disablerepo: "{{ extrarepos_disabled |default (omit, True) }}"
+    when: install_os_packages and ansible_os_family == 'RedHat'
+    tags: os_packages, oscheck
 
   - name: Install packages required by Oracle on OL/RHEL
     yum:
@@ -16,6 +33,12 @@
        enablerepo: "{{ extrarepos_enabled |default (omit, True) }}"
        disablerepo: "{{ extrarepos_disabled |default (omit, True) }}"
     when: install_os_packages and ansible_os_family == 'RedHat'
+    tags: os_packages, oscheck
+
+  - name: Install packages preparatory required by Oracle on SLES
+    zypper: name={{ item }} state=installed
+    with_items: "{{ oracle_packages_prep_sles }}"
+    when: install_os_packages and ansible_os_family == 'Suse'
     tags: os_packages, oscheck
 
   - name: Install packages required by Oracle on SLES

@@ -131,6 +131,9 @@
 
 
 
+  oracle_packages_prep:
+      - libgcc
+
   oracle_packages:
       - bind-utils
       - nfs-utils
@@ -185,6 +188,9 @@
       - elfutils-libelf-devel
       - cpp
 
+  oracle_packages_prep_sles:
+      - libgcc_s1
+    
   oracle_packages_sles:
       - ksh
       - binutils

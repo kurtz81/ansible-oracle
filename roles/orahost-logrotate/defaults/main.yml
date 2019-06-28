@@ -21,6 +21,8 @@ logrotate_config:
             - weekly
             - rotate 3
             - dateext
+            - compress
+            - delaycompress
         - name: oracle_listener
           file: "{{ oracle_base }}/diag/tnslsnr/*/*/trace/*listener*.log"
           options:
@@ -30,12 +32,14 @@ logrotate_config:
             - rotate 3
             - dateext
             - compress
+            - delaycompress
         - name: oracle_rman
           file: "{{ rman_cron_logdir | default('/var/log/oracle/rman/log') }}/*.log {{ oracle_base }}/admin/*/rman/*.log {{ oracle_base }}/admin/*/rman/log/*.log"
           options:
             - missingok
             - notifempty
             - compress
+            - delaycompress
             - weekly
             - rotate 24
             - dateext

@@ -94,7 +94,10 @@
       - btrfs-progs
       - procps
       - psmisc
-      
+      - htop
+      - tree
+      - rlwrap
+
   common_packages_sles:
       - screen
 #      - facter

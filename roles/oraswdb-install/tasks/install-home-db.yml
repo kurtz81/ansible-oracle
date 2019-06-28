@@ -14,8 +14,12 @@
   failed_when: False
   tags: install_home,existing_dbhome,checkdbswinstall
 
-- debug: msg="Installing ORACLE_HOME - {{ oracle_home_db }}"
+- debug: 
+    msg: "Installing ORACLE_HOME - {{ oracle_home_db }}"
   when: oracle_home_db not in existing_dbhome.stdout_lines
+
+- debug: 
+    msg: "existing_dbhome = {{ existing_dbhome }}"
 
 - name: install-home-db | add dotprofile
   template:
@@ -40,6 +44,7 @@
   tags: responsefileswdb
 
 - include_tasks: "{{ db_version }}.yml"
+  tags: install_specific_version
 
 # oracle_EE_options = '' => Nothing to do
 # licence options in 11.2+ must be changed by chopt

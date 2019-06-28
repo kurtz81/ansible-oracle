@@ -3,7 +3,7 @@
   shell: "curl -o {{ oracle_stage }}/{{ item[0].filename }} {{ oracle_sw_source_www }}/{{ item[0].filename }}"
   with_nested:
     - "{{oracle_sw_image_db}}"
-    - "{{oracle_databases}}"
+    - "{{db_homes_installed}}"
   become: yes
   become_user: "{{ oracle_user }}"
   run_once: "{{ configure_cluster}}"
