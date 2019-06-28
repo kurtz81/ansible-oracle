@@ -1,0 +1,66 @@
+---
+
+
+ - name: Host configuration
+   hosts: icon-tilab
+   user: ansible
+#   sudo: yes
+   roles:
+      - common
+      - orahost
+   environment: "{{proxy_env}}"
+#   environment:
+#     http_proxy: "{{ http_proxy | default('') }}"
+#     https_proxy: "{{ https_proxy | default('') }}"
+
+# - name: Oracle Grid Infrastructure installation & ASM Configuration
+#   hosts: icon-tilab
+#   user: ansible
+#   sudo: yes
+#   roles:
+#      - oraswgi-install
+#      - oraasm-createdg
+
+ - name: Database Server Installation & Database Creation
+   hosts: icon-tilab
+   user: ansible
+#   sudo: yes
+   roles:
+     - oraswdb-install
+     - oradb-create
+#      - oradb-delete
+#      - oradb-manage-db
+   environment: "{{proxy_env}}"
+#   environment:   
+#     http_proxy: "{{ http_proxy | default('') }}"
+#     https_proxy: "{{ https_proxy | default('') }}"
+
+ - name: Tweaks
+   hosts: icon-tilab
+   user: ansible
+#   sudo: yes
+   roles:
+      - cxoracle
+      - orahost-logrotate
+
+ - name: RMAN
+   hosts: icon-tilab
+#   user: ansible
+#   sudo: yes
+   roles:
+      - ora-rman
+    
+ - name: APNS
+   hosts: localhost
+#   user: ansible
+#   sudo: yes
+   roles:
+      - ora-schema
+ 
+# - name: Remove DB
+#   hosts: icon-tilab
+#   user: ansible
+#   sudo: yes
+#   roles:
+#      - oradb-delete
+ 
