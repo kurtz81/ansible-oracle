@@ -1,0 +1,64 @@
+---
+
+
+ - name: Host configuration
+   hosts: izsto-db-test-locale
+   #hosts: izsto-db
+   user: ansible
+#   sudo: yes
+   roles:
+      - common
+      - orahost
+#   environment:
+#      http_proxy: http://proxy.izsto.it:8080
+#      https_proxy: http://proxy.izsto.it:8080
+
+# - name: Oracle Grid Infrastructure installation & ASM Configuration
+#   hosts: izsto-db-test-locale
+#   #hosts: izsto-db
+#   user: ansible
+#   sudo: yes
+#   roles:
+#      - oraswgi-install
+#      - oraasm-createdg
+
+ - name: Database Server Installation & Database Creation
+   hosts: izsto-db-test-locale
+   #hosts: izsto-db
+   user: ansible
+#   sudo: yes
+   roles:
+#      - oraswdb-install
+      - oradb-create
+#      - oradb-delete
+#      - oradb-manage-db
+#   environment:
+#      http_proxy: http://proxy.izsto.it:8080
+#      https_proxy: http://proxy.izsto.it:8080
+
+ - name: Tweaks
+   hosts: izsto-db-test-locale
+   #hosts: izsto-db
+   user: ansible
+#   sudo: yes
+   roles:
+      - cxoracle
+#      - orahost-logrotate
+
+ - name: RMAN
+   hosts: izsto-db-test-locale
+   #hosts: izsto-db
+#   user: ansible
+#   sudo: yes
+   roles:
+      - ora-rman
+
+
+# - name: Remove DB
+#   hosts: izsto-db-test-locale
+#   #hosts: izsto-db
+#   user: ansible
+#   sudo: yes
+#   roles:
+#      - oradb-delete
+ 
