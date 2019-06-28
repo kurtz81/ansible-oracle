@@ -1,0 +1,8 @@
+#jinja2: trim_blocks:True
+# {{ ansible_managed }}
+#
+
+ALTER session set container={{ item.0.pluggable_db }};
+
+DROP USER {{ item.0.name_schema }} CASCADE;
+

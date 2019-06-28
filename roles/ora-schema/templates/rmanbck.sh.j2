@@ -1,0 +1,72 @@
+#!/bin/bash
+# Version: 0.1.0
+# Author(s):
+#      Walter Curtetti, walter.curtetti@gmail.com
+#
+
+typeBck=$1
+dbname=$2
+
+if [ "x$dbname" != "x" ] ; then
+    echo "dbname SET TO "$dbname
+    export profileFile="~/.profile_$dbname"
+    profileFile="${profileFile/#\~/$HOME}"
+    echo "profileFile =  "$profileFile
+fi
+
+# export dbname="cdbrac12c"
+#source ./.profile_$dbname # $ORACLE_HOME, $ORACLE_SID, $ORACLE_BCK_DIR 
+source $profileFile # $ORACLE_HOME, $ORACLE_SID, $ORACLE_BCK_DIR 
+                    # and $ORACLE_BCK_DIR_ASM should be exported here 
+
+#source ./.profile_$dbname   # $ORACLE_HOME, $ORACLE_SID, $ORACLE_BCK_DIR 
+#                            # and $ORACLE_BCK_DIR_ASM should be exported here 
+
+# export ORACLE_HOME=$ORACLE_HOME_ORIG
+# export ORACLE_SID=<SID>
+# export ORACLE_BCK_DIR=<MAIN_DIR_BCK>
+# export ORACLE_BCK_DIR_ASM=<MAIN_DIR_BCK_ASM>
+
+source $ORACLE_BCK_DIR/scripts/conf/rmanbck.cfg
+
+usage() {
+        echo `basename $0`: ERROR: $* 1>&2
+        echo usage: `basename $0` '[-[acfm]|-i0|i1|ic]' 1>&2
+        exit 1
+}
+
+case "$typeBck" in
+        -a)   BACKUP_TYPE="$ARCHLOG_SCRIPT";;
+        -c)   BACKUP_TYPE="backup current controlfile;";;
+        -f)   BACKUP_TYPE="$FULL";;
+        -i0)  BACKUP_TYPE="$INCREMENTAL0";;
+        -i1)  BACKUP_TYPE="$INCREMENTAL1";;
+        -ic)  BACKUP_TYPE="$CUMULATIVE";;
+        -m)   BACKUP_TYPE="${MAINT_SCRIPT/@#RESTORE_DB#@/$RESTORE_DB_CLAUSE}";;
+        -ml1) BACKUP_TYPE="${MAINT_SCRIPT/@#RESTORE_DB#@/}";;
+        *) usage ;; 
+esac
+
+DATA=`date +%d-%m-%Y-%H:%M:%S`
+#echo "$BACKUP_TYPE"
+
+#CONFIGURE CHANNEL DEVICE TYPE DISK FORMAT '$BCK_DEST' MAXPIECESIZE $MAXPIECESIZE;
+
+#cat <<EOF
+
+rman target / nocatalog log=$ORACLE_BCK_DIR/log/rmanlog_$DATA.log <<EOF
+CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF $RECOVERY_DAYS DAYS; 
+CONFIGURE BACKUP OPTIMIZATION $BACKUP_OPTIMIZATION; 
+CONFIGURE CONTROLFILE AUTOBACKUP $CONTROLFILE_AUTOBACKUP; 
+CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '$CONTROLFILE_AUTOBACKUP_FORMAT'; 
+CONFIGURE DEVICE TYPE DISK PARALLELISM $PARALLELISM BACKUP TYPE TO $BACKUPSET_TYPE; 
+CONFIGURE COMPRESSION ALGORITHM '$COMPRESSION_ALGORITHM'; 
+CONFIGURE SNAPSHOT CONTROLFILE NAME TO '$SNAPSHOT_CONTROLFILE'; 
+run {
+$BACKUP_TYPE
+}
+exit;
+EOF
+# $BACKUP_TYPE;
+
+exit 0

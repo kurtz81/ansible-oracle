@@ -1,0 +1,9 @@
+[Unit]
+Description=Run oracle-backup-asm 1 times a week
+
+[Timer]
+OnCalendar=Sun *-*-* 01:30:00
+
+
+[Install]
+WantedBy=timers.target

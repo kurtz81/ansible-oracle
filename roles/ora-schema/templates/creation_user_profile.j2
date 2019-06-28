@@ -1,0 +1,23 @@
+#jinja2: trim_blocks:True
+# {{ ansible_managed }}
+#
+
+ALTER session set container={{ item.0.pluggable_db }};
+
+CREATE PROFILE NO_EXPIRE LIMIT COMPOSITE_LIMIT   UNLIMITED
+                           SESSIONS_PER_USER UNLIMITED
+                           CPU_PER_SESSION   UNLIMITED
+                           CPU_PER_CALL   UNLIMITED
+                           LOGICAL_READS_PER_SESSION  UNLIMITED
+                           LOGICAL_READS_PER_CALL  UNLIMITED
+                           IDLE_TIME   UNLIMITED
+                           CONNECT_TIME   UNLIMITED
+                           PRIVATE_SGA UNLIMITED
+                           FAILED_LOGIN_ATTEMPTS 10
+                           PASSWORD_LIFE_TIME   UNLIMITED
+                           PASSWORD_REUSE_TIME  UNLIMITED
+                           PASSWORD_REUSE_MAX   UNLIMITED
+                           PASSWORD_VERIFY_FUNCTION   NULL
+                           PASSWORD_LOCK_TIME   1
+                           PASSWORD_GRACE_TIME  7;
+

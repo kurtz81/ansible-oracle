@@ -1,0 +1,157 @@
+#!/bin/bash
+#
+#
+# Description: Query to test authentication radius procedure
+#
+# Author:      Walter Curtetti, walter.curtetti@guest.telecomitalia.it
+#
+dbrm="/home/walter/LAVORO/repository/database-release-manager/rootfs/bin/dbrm"
+
+check_conn () {
+
+    local ans=0
+    local dbrm_profile=$1
+    
+    $dbrm dbm set_profile --name $dbrm_profile
+
+    echo "##################"
+    echo "PROFILE DETAILS = "
+    $dbrm dbm info
+    #$dbrm oracle shell --help
+    echo "##################"
+
+    $dbrm oracle test_connection
+    ans=$?
+    if [ $ans -eq 1 ] ; then
+        echo "Problem on connection"
+        ans=1
+    fi
+
+    return $ans
+
+}
+
+create_schema () {
+
+    local ans=0
+    local dbrm_profile_dba=$1
+    local dbrm_profile=$2
+    local db_version=$3
+    local db_tablespace_data=$4
+    local db_tablespace_idx=$5
+    local db_schema=$6
+    local db_path_datafile=${7//\//\\\/}
+    local db_pdb_name=$8
+
+    check_conn $dbrm_profile_dba
+    res=$?
+    if [ $res -eq 1 ] ; then
+        echo "Problem on check connection to dba"
+        return $res
+    fi
+
+    read -p "Are you sure you want contine to create new schema? (Y/N)" resp
+
+    if [[ "x"$resp == "x""Y" ]] ; then
+
+        sed "s/@@TS@@/$db_tablespace_data/" initial_ddl/create_schema.sql > create_schema_WORK_TMP.sql
+        sed "s/@@TS_IDX@@/$db_tablespace_idx/" create_schema_WORK_TMP.sql > create_schema_WORK_TMP2.sql
+        sed "s/@@SCHEMA_USER@@/$db_schema/g" create_schema_WORK_TMP2.sql > create_schema_WORK_TMP.sql
+        sed "s/@@PATH_FILE@@/$db_path_datafile/" create_schema_WORK_TMP.sql > create_schema_WORK_TMP2.sql
+        sed "s/@@PDBNAME@@/$db_pdb_name/" create_schema_WORK_TMP2.sql > create_schema_WORK.sql
+        $dbrm oracle compile --file create_schema_WORK.sql
+        res=$?
+        if [ $res -eq 1 ] ; then
+            echo "Problem on compile initial ddl"
+            ans=1
+        fi
+
+        rm create_schema_WORK_TMP.sql
+        rm create_schema_WORK_TMP2.sql
+        rm create_schema_WORK.sql
+
+    fi
+
+    return $ans
+
+}
+
+compile_initial_ddl () {
+
+    local ans=0
+    local dbrm_profile_dba=$1
+    local dbrm_profile=$2
+    local db_version=$3
+    local db_tablespace_data=$4
+    local db_tablespace_idx=$5
+    local db_schema=$6
+    local db_path_datafile=$7
+    local db_pdb_name=$8
+
+    check_conn $dbrm_profile
+    res=$?
+    if [ $res -eq 1 ] ; then
+        echo "Problem on check connection"
+        return $res
+    fi
+
+    read -p "Are you sure you want contine to compile initial ddl? (Y/N)" resp
+
+    if [[ "x"$resp == "x""Y" ]] ; then
+
+        sed "s/TABLESPACE \"@@TS@@\"/TABLESPACE \"$db_tablespace_data\"/" initial_ddl/$db_version/sviluppo_initialddl_$db_version.sql > sviluppo_initialddl_WORK_TMP.sql
+        sed "s/TABLESPACE \"@@TS_IDX@@\"/TABLESPACE \"$db_tablespace_idx\"/" sviluppo_initialddl_WORK_TMP.sql > sviluppo_initialddl_WORK.sql
+        $dbrm oracle compile --file sviluppo_initialddl_WORK.sql
+        res=$?
+        if [ $res -eq 1 ] ; then
+            echo "Problem on compile initial ddl"
+            ans=1
+        fi
+
+        rm sviluppo_initialddl_WORK_TMP.sql
+        rm sviluppo_initialddl_WORK.sql
+
+    fi
+
+    read -p "Are you sure you want contine to compile initial ddl index? (Y/N)" resp
+
+    if [[ "x"$resp == "x""Y" ]] ; then
+
+        sed "s/TABLESPACE \"@@TS_IDX@@\"/TABLESPACE \"$db_tablespace_idx\"/" initial_ddl/$db_version/sviluppo_initialddl_index_$db_version.sql > sviluppo_initialddl_index_WORK.sql
+        $dbrm oracle compile --file sviluppo_initialddl_index_WORK.sql
+        res=$?
+        if [ $res -eq 1 ] ; then
+            echo "Problem on compile initial ddl index"
+            ans=1
+        fi
+
+        rm sviluppo_initialddl_index_WORK.sql
+
+    fi
+
+    return $ans
+
+}
+
+main () {
+
+    local ans=0
+
+    create_schema "$@"
+
+    compile_initial_ddl "$@"
+    #ans=$?
+
+    return $ans
+
+}
+
+#echo "db_tnsname="$db_tnsname
+#echo "db_user="$db_user
+#echo "db_pwd="$db_pwd
+
+main "$@"
+exit_status=$?
+
+exit $exit_status
+

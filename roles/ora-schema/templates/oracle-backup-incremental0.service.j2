@@ -1,0 +1,13 @@
+[Unit]
+Description=Oracle RMAN backup incremental0
+After=network.target
+
+[Service]
+User=oracle
+Group=oinstall
+Type=oneshot
+ExecStart=/backup_rman/oracle_rman/scripts/rmanbck_multi.sh -i0
+
+[Install]
+WantedBy=multi-user.target
+

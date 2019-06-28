@@ -1,0 +1,486 @@
+---
+
+  - name: "get tag repository"
+    git:
+      repo: "{{ item.git_repo }}"
+      dest: "{{ item.working_dir }}"
+      #version: "{{ 'dboracle-' if (item.release != '') else ''}}{{ item.release if (item.release != '') else 'develop' }}"
+      version: "develop"
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - get_git_repo
+
+  - name: "remove dbrm.db from git"
+    command: "git rm --cached dbrm.db"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - ignoredbrm
+
+  - name: "commit "
+    command: "git commit -m 'commit removing dbrm.db'"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - ignoredbrm
+
+  - name: "ignore dbrm update"
+    lineinfile:
+      path: "{{ item.working_dir }}/.gitignore"
+      line: dbrm.db
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - ignoredbrm
+
+  - name: "commit "
+    command: "git commit -m 'commit gitignore' .gitignore"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - ignoredbrm
+
+  - name: "Change dbrm profile to dba connection"
+    command: "dbrm dbm set_profile --name {{ item.profile_dba }}"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    register: changeprofile
+    tags:
+      - oracle_create_schema
+      - user_profile_dba
+
+  - debug: var=item.stdout
+    tags:
+      - oracle_create_schema
+      - user_profile_dba
+    with_items: "{{ changeprofile.results }}"
+    ignore_errors: yes
+
+  - name: "Check connection to dba"
+    command: "dbrm oracle test_connection"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    register: check_conn_dba
+    tags:
+      - oracle_create_schema
+      - check_conn_dba
+
+  - debug: var=item.stdout
+    tags:
+      - oracle_create_schema
+      - check_conn_dba
+    with_items: "{{ check_conn_dba.results }}"
+    ignore_errors: yes
+
+  - name: "Prepare sql script for drop user schema"
+    template: src=drop_schema.j2 dest={{ item.0.working_dir }}/drop_schema.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - drop_user_schema
+
+  - name: "Drop user schema"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/drop_schema.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: drop_usr_schema
+    tags:
+      - oracle_create_schema
+      - drop_user_schema
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - drop_user_schema
+    with_together: 
+      - "{{ drop_usr_schema.results }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+
+  - name: "Prepare sql script for create user profile NOEXPIRE"
+    template: src=creation_user_profile.j2 dest={{ item.0.working_dir }}/creation_user_profile.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_user_profile
+
+  - name: "Create user profile NOEXPIRE"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/creation_user_profile.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_usr_prof
+    tags:
+      - oracle_create_schema
+      - create_user_profile
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_user_profile
+    with_together: 
+      - "{{ create_usr_prof.results }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+  - name: "Prepare sql script for create new user schema"
+    template: src=creation_schema.j2 dest={{ item.0.working_dir }}/creation_schema.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_user_schema
+
+  - name: "Create new user schema"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/creation_schema.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_schema_res
+    tags:
+      - oracle_create_schema
+      - create_user_schema
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_user_schema
+    with_together: 
+      - "{{ create_schema_res.results }}"
+      - "{{ check_conn_dba.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+  - name: "Change dbrm profile to user connection"
+    command: "dbrm dbm set_profile --name {{ item.profile_schema }}"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    register: changeprofile
+    tags:
+      - oracle_create_schema
+      - user_profile
+
+  - debug: var=item.stdout
+    tags:
+      - oracle_create_schema
+      - user_profile
+    with_items: "{{ changeprofile.results }}"
+    ignore_errors: yes
+
+  - name: "Check connection to new schema"
+    command: "dbrm oracle test_connection"
+    args:
+      chdir: "{{ item.working_dir }}"
+    ignore_errors: yes
+    with_items: "{{ apns_conf }}"
+    register: check_conn_schema
+    tags:
+      - oracle_create_schema
+      - check_conn_schema
+
+  - debug: var=item.stdout
+    tags:
+      - oracle_create_schema
+      - check_conn_schema
+    with_items: "{{ check_conn_schema.results }}"
+    ignore_errors: yes
+
+
+  - name: "Prepare sql script for compile initial ddl in new user schema"
+    template: src=initialddl_{{ item.release if (item.0.release != '') else 'develop' }}.j2 dest={{ item.0.working_dir }}/initialddl_{{ item.release if (item.0.release != '') else 'develop' }}.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_initialddl
+
+  - name: "Compile initial ddl"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/initialddl_{{ item.release if (item.0.release != '') else 'develop' }}.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_initddl
+    tags:
+      - oracle_create_schema
+      - create_initialddl
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_initialddl
+    with_together: 
+      - "{{ create_initddl.results }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+
+  - name: "Prepare sql script for compile initial ddl index in new user schema"
+    template: src=initialddl_index_{{ item.release if (item.0.release != '') else 'develop' }}.j2 dest={{ item.0.working_dir }}/initialddl_index_{{ item.release if (item.0.release != '') else 'develop' }}.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_initialddlidx
+
+  - name: "Compile initial ddl index"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/initialddl_index_{{ item.release if (item.0.release != '') else 'develop' }}.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_initddlidx
+    tags:
+      - oracle_create_schema
+      - create_initialddlidx
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_initialddlidx
+    with_together: 
+      - "{{ create_initddlidx.results }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+  - name: "Prepare sql script for compile initial ddl net configuration in new user schema"
+    template: src=initialddl_insert_netconf_{{ item.release if (item.0.release != '') else 'develop' }}.j2 dest={{ item.0.working_dir }}/initialddl_insert_netconf_{{ item.release if (item.0.release != '') else 'develop' }}.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_initialddl_netconf
+
+  - name: "Compile initial ddl net configuration"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/initialddl_insert_netconf_{{ item.release if (item.0.release != '') else 'develop' }}.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_initddlnetconf
+    tags:
+      - oracle_create_schema
+      - create_initialddl_netconf
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_initialddl_netconf
+    with_together: 
+      - "{{ create_initddlnetconf.results }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+  - name: "Prepare sql script for compile initial ddl insert mcc/mnc in new user schema"
+    template: src=initialddl_mccmnc_{{ item.release if (item.0.release != '') else 'develop' }}.j2 dest={{ item.0.working_dir }}/initialddl_mccmnc_{{ item.release if (item.0.release != '') else 'develop' }}.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_initialddl_mnc_mcc_insert
+
+  - name: "Compile initial ddl insert mcc/mnc"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/initialddl_mccmnc_{{ item.release if (item.0.release != '') else 'develop' }}.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_initddlmccmnc
+    tags:
+      - oracle_create_schema
+      - create_initialddl_mnc_mcc_insert
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_initialddl_mnc_mcc_insert
+    with_together: 
+      - "{{ create_initddlmccmnc.results }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+  - name: "Prepare sql script for compile initial ddl insert in new user schema"
+    template: src=initialddl_insert_{{ item.release if (item.0.release != '') else 'develop' }}.j2 dest={{ item.0.working_dir }}/initialddl_insert_{{ item.release if (item.0.release != '') else 'develop' }}.sql
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    tags:
+      - oracle_create_schema
+      - create_initialddl_insert
+
+  - name: "Compile initial ddl insert"
+    command: "dbrm oracle compile --file {{ item.0.working_dir }}/initialddl_insert_{{ item.release if (item.0.release != '') else 'develop' }}.sql"
+    args:
+      chdir: "{{ item.0.working_dir }}"
+    ignore_errors: yes
+    with_together: 
+      - "{{ apns_conf }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    register: create_initddlins
+    tags:
+      - oracle_create_schema
+      - create_initialddl_insert
+
+  - debug: var=item.0.stdout
+    tags:
+      - oracle_create_schema
+      - create_initialddl_insert
+    with_together: 
+      - "{{ create_initddlins.results }}"
+      - "{{ check_conn_schema.results }}"
+    when: "'Connected' in item.1.stdout and 'correctly' in item.1.stdout"
+    ignore_errors: yes
+
+  - name: "load correct branch"
+    git:
+      repo: "{{ item.git_repo }}"
+      dest: "{{ item.working_dir }}/release"
+      version: "{{ 'dboracle-' if (item.release != '') else ''}}{{ item.release if (item.release != '') else 'develop' }}"
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - change_branch
+
+  - set_fact: 
+      compile_dir: "{{ item.working_dir }}"
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - compile_packages
+      - compile_views
+
+  - set_fact: 
+      dir_packages: "{{ item.working_dir ~ '/release/packages/' }}"
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - compile_packages
+
+  - set_fact: 
+      file_contents_lines: "{{ lookup('file', dir_packages ~ 'packages.sh').splitlines() }}"
+    tags:
+      - oracle_create_schema
+      - compile_packages
+
+  - name: "compile priority packages"
+    command: "dbrm oracle compile --file {{ dir_packages ~ item|regex_replace('^priority_packages[[0-9]*]=\"([A-Za-z0-9_]*)\"$', '\\1') ~ '.sql' }}"
+    args:
+      chdir: "{{ compile_dir }}"
+    with_items: "{{ file_contents_lines }}"
+    tags:
+      - oracle_create_schema
+      - compile_packages
+    when: item | regex_search('^priority_packages')
+    ignore_errors: yes
+
+  - name: "compile regular packages"
+    command: "dbrm oracle compile --file {{ dir_packages ~ item|regex_replace('^packages[[0-9]*]=\"([A-Za-z0-9_]*)\"$', '\\1') ~ '.sql' }}"
+    args:
+      chdir: "{{ compile_dir }}"
+    with_items: "{{ file_contents_lines }}"
+    tags:
+      - oracle_create_schema
+      - compile_packages
+    when: item | regex_search('^packages')
+    ignore_errors: yes
+
+  - name: "compile regular packages 2 times"
+    command: "dbrm oracle compile --file {{ dir_packages ~ item|regex_replace('^packages[[0-9]*]=\"([A-Za-z0-9_]*)\"$', '\\1') ~ '.sql' }}"
+    args:
+      chdir: "{{ compile_dir }}"
+    with_items: "{{ file_contents_lines }}"
+    tags:
+      - oracle_create_schema
+      - compile_packages
+    when: item | regex_search('^packages')
+    ignore_errors: yes
+
+  - set_fact: 
+      dir_views: "{{ item.working_dir ~ '/release/views/' }}"
+    with_items: "{{ apns_conf }}"
+    tags:
+      - oracle_create_schema
+      - compile_views
+
+  - set_fact: 
+      file_contents_lines: "{{ lookup('file', dir_views ~ 'views.sh').splitlines() }}"
+    tags:
+      - oracle_create_schema
+      - compile_views
+
+  - name: "compile views"
+    command: "dbrm oracle compile --file {{ dir_views ~ item|regex_replace('^views[[0-9]*]=\"([A-Za-z0-9_]*)\"[ ]*$', '\\1') ~ '.sql' }}"
+    args:
+      chdir: "{{ compile_dir }}"
+    with_items: "{{ file_contents_lines }}"
+    tags:
+      - oracle_create_schema
+      - compile_views
+    when: item | regex_search('^views')
+    ignore_errors: yes
+
+## vim: ts=2 sw=2 expandtab

@@ -1,0 +1,37 @@
+#jinja2: trim_blocks:True
+# {{ ansible_managed }}
+#
+
+ALTER session set container={{ item.0.pluggable_db }};
+
+{% if item.0.create_tbs_schema is defined and item.0.create_tbs_schema %}
+CREATE TABLESPACE "{{ item.0.tablespace_data }}"
+DATAFILE '{{ item.0.path_datafile }}/{{ item.0.tablespace_data }}01.dbf' SIZE 512M AUTOEXTEND ON NEXT 32M MAXSIZE 2048M, 
+         '{{ item.0.path_datafile }}/{{ item.0.tablespace_data }}02.dbf' SIZE 512M AUTOEXTEND ON NEXT 32M MAXSIZE 2048M
+LOGGING
+EXTENT MANAGEMENT LOCAL;
+
+CREATE TABLESPACE "{{ item.0.tablespace_idx }}"
+DATAFILE '{{ item.0.path_datafile }}/{{ item.0.tablespace_idx }}01.dbf' SIZE 256M AUTOEXTEND ON NEXT 32M MAXSIZE 1024M, 
+         '{{ item.0.path_datafile }}/{{ item.0.tablespace_idx }}02.dbf' SIZE 256M AUTOEXTEND ON NEXT 32M MAXSIZE 1024M
+LOGGING
+EXTENT MANAGEMENT LOCAL;
+{% endif %}
+
+CREATE USER {{ item.0.name_schema }} IDENTIFIED BY {{ item.0.name_schema }}0;
+GRANT CREATE SESSION, RESOURCE, CREATE VIEW, CREATE MATERIALIZED VIEW, CREATE SYNONYM TO {{ item.0.name_schema }};
+GRANT DEBUG ANY PROCEDURE, DEBUG CONNECT SESSION TO {{ item.0.name_schema }};
+ALTER USER {{ item.0.name_schema }} PROFILE NO_EXPIRE;
+
+ALTER USER {{ item.0.name_schema }} DEFAULT TABLESPACE "{{ item.0.tablespace_data }}" TEMPORARY TABLESPACE "TEMP";
+GRANT CREATE PROCEDURE TO {{ item.0.name_schema }};
+GRANT CREATE JOB TO {{ item.0.name_schema }};
+GRANT READ,WRITE ON DIRECTORY DATA_PUMP_DIR TO {{ item.0.name_schema }};
+--GRANT READ,WRITE ON DIRECTORY DATA_PUMP_DIR2 TO {{ item.0.name_schema }};
+GRANT EXECUTE ON DBMS_PIPE TO {{ item.0.name_schema }};
+GRANT EXECUTE ON DBMS_STATS TO {{ item.0.name_schema }};
+GRANT EXECUTE ON DBMS_CRYPTO TO {{ item.0.name_schema }};
+--GRANT EXECUTE ON DBMS_LOCK TO {{ item.0.name_schema }};
+GRANT CREATE PUBLIC SYNONYM TO {{ item.0.name_schema }};
+GRANT UNLIMITED TABLESPACE TO {{ item.0.name_schema }};
+

@@ -1,0 +1,31 @@
+---
+
+  apns_conf:
+    - pluggable_db: "PDB_ICONTILAB"
+      profile_dba: "icon-tilab-dba"
+      profile_schema: "icon-tilab"
+      release: "2.2.17.1"
+      # release: ""
+      create_tbs_schema: False
+      tablespace_data: "ICONTILABDATA"
+      tablespace_idx: "ICONTILABIDX"
+      name_schema: "ICONTILAB"
+      path_datafile: "/u01/app/oracle/oradata/PDB_ICONTILAB" 
+      git_repo: "https://scm.code.telecomitalia.it/icon/apns/dboracle.git" 
+      working_dir: "/tmp/workdir"
+      apn: "nbiottp.tids.tim.it"
+      type_project: "OLIVETTI"  # MKT or OLIVETTI
+      account: "ICONTILAB"
+      ggsn:
+        - name: GGSN-MI60
+          secret: omero!07
+          address:
+            - 163.162.30.121
+            - 163.162.30.122
+      nas_backend:
+        - name: capnet-rad
+          addr: 163.162.26.103          
+          secret: secret!01
+
+# vim: ts=2 sw=2 expandtab syntax=yaml
+
