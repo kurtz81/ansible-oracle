@@ -1,0 +1,43 @@
+---
+
+
+ - name: Host configuration
+   hosts: apnscollaudo
+   user: ansible
+   become: yes
+   roles:
+      - common
+      - orahost
+      - orahost-storage
+
+ - name: ssh configuration
+   hosts: apnscollaudo
+   user: vagrant
+   become: yes
+   serial: 1
+   roles:
+      - {role: orahost-ssh, when: configure_cluster and not old_ssh_config}
+
+ - name: Oracle Grid Infrastructure installation & ASM Configuration
+   hosts: apnscollaudo
+   user: ansible
+   become: yes
+   roles:
+      - oraswgi-install
+      - oraasm-createdg
+
+ - name: Database Server Installation & Database Creation
+   hosts: apnscollaudo
+   user: ansible
+   become: yes
+   roles:
+      - oraswdb-install
+      - oradb-create
+
+ - name: Tweaks
+   hosts: apnscollaudo
+   user: ansible
+   become: yes
+   roles:
+      - cxoracle
+      - orahost-logrotate
