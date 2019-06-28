@@ -1,0 +1,13 @@
+[Unit]
+Description=Oracle RMAN backup cumulative
+After=network.target
+
+[Service]
+User=oracle
+Group=oinstall
+Type=oneshot
+ExecStart=/backup_rman/oracle_rman/scripts/rmanbck_multi.sh -ic
+
+[Install]
+WantedBy=multi-user.target
+

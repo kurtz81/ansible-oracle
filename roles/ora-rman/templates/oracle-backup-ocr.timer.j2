@@ -1,0 +1,9 @@
+[Unit]
+Description=Run oracle-backup-ocr 1 times a week
+
+[Timer]
+OnCalendar=Sun *-*-* 01:00:00
+
+
+[Install]
+WantedBy=timers.target

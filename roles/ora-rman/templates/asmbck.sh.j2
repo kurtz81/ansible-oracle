@@ -1,0 +1,95 @@
+#!/bin/bash
+# Version: 0.1.0
+# Author(s):
+#      Walter Curtetti, walter.curtetti@gmail.com
+#
+
+retentionDays=30
+currentDir=`dirname $0`
+pathAsmCmd="/u01/app/12.1.0.2/grid/bin"
+listdb=`$pathAsmCmd/srvctl config database`
+echo "listdb = $listdb"
+
+dbname=`echo "$listdb" | head -1 | tail -1`
+echo "dbname = $dbname"
+
+OCRBACKUPDATADIR="$currentDir/../ASM"
+
+source ~/.profile_grid
+#ORACLE_SID=`grep "^+ASM" /etc/oratab |cut -d":" -f1`
+#ORACLE_HOME=/u01/app/12.1.0.2/grid
+
+#echo $OCRBACKUPDATADIR
+#echo $ORACLE_SID
+
+do_mdbackup()
+{
+	echo "Creating a md_backup with asmcmd"
+
+	MD_BACKUP_FILE=${OCRBACKUPDATADIR}/backup_md_backup_`date +%Y%m%d_%H%M`
+	resbck=`date;$pathAsmCmd/asmcmd md_backup ${MD_BACKUP_FILE}.xml`
+
+	retcode=$?
+
+    echo "$resbck"
+
+	if [ ${retcode} -eq 0 ]
+	then
+		gzip ${MD_BACKUP_FILE}.xml
+		echo "md_backup succesfully created!"
+
+        #remove older than <retentionDays> DAYS
+        find ${OCRBACKUPDATADIR}/ -mtime +$retentionDays -regex ".*backup_md_backup_.*" -exec rm -rf {} \;
+
+        retcode=$?
+        if [ ${retcode} -eq 0 ]
+        then
+	        echo "removing old mdasm backup succesfully"
+        fi
+
+	fi
+
+}
+
+do_asmspfilebackup()
+{
+	# create a pfile from spfile for asm
+	# this backup is very useful, because we need a pfile when we lost the diskgroup
+	# where oracle has storred the spfile
+	#
+	# The needed environment was set in set_env
+	pfilename=${OCRBACKUPDATADIR}/init${ORACLE_SID}_`date +%Y%m%d_%H%M`.ora
+
+# su to ORACRSOWNER needed for sqlplus. Enviroment was set in set_env
+# we exit sqlplus when getting a problem. ASM must be started with a SPfile!
+sqlplus -L -S / as sysasm << _EOF_
+set feedback off
+whenever sqlerror exit 1 rollback
+create pfile='${pfilename}' from spfile;
+exit
+_EOF_
+
+	retcode=$?
+	if [ ${retcode} -eq 0 ]
+	then
+		echo "ASM init.ora is created!"
+
+        #remove older than <retentionDays> DAYS
+        find ${OCRBACKUPDATADIR}/ -mtime +$retentionDays -regex ".*init.*" -exec rm -rf {} \;
+
+        retcode=$?
+        if [ ${retcode} -eq 0 ]
+        then
+	        echo "removing old spfile backup succesfully"
+        fi
+
+	else
+		echo "ASM init.ora NOT CREATED!!!!!!"
+	fi
+
+}
+
+do_mdbackup
+do_asmspfilebackup
+
+exit 0

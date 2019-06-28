@@ -1,0 +1,40 @@
+---
+
+  oracle_user: oracle                        # User that will own the Oracle Installations.
+  oracle_group: oinstall                     # Primary group for oracle_user.
+  configure_cluster: false
+  bck_rman_basedir_script: "/backup_rman/oracle_rman"
+  systemd_location: "/etc/systemd/system"
+  bck_type_fs: FS                              #type of file system in which put backup rman (AMS|FS)
+  bck_rman_basedir_fs: "$ORACLE_BCK_DIR"
+  bck_rman_basedir_asm: "$ORACLE_BCK_DIR_ASM"
+  bck_rman_basedir_var: "{% if bck_type_fs|upper == 'FS' %}{{ bck_rman_basedir_fs }}{% elif bck_type_fs|upper == 'ASM' %}{{ bck_rman_basedir_asm }}{% else %}{% endif %}"
+
+  bck_rman_retention_recovery_days: 1           #RMAN PARAMETER - DAYS RETENTION POLICY
+  bck_rman_parallelism: 1                       # Define parallelism degree by an integer (only usable on Enterprise Edition)
+  bck_rman_compression_algorithm: "BASIC"       # Set the compression program. (Why not to use bz2 for compression?  
+  bck_rman_maxpiecesize: "4G"                   #4G|1024M
+  bck_rman_filesperset: 5
+  bck_rman_enable_compression: true             #if enable compression in rman backup
+  bck_rman_compress_string : "AS COMPRESSED BACKUPSET"
+
+  bck_rman_planning: 
+    - name: "full weekly"
+      hour: "4"
+      minute: "0"
+      dow: "0"
+      cmd_parameter: "-f"
+    - name: "archivelog daily"
+      hour: "4"
+      minute: "0"
+      dow: "1-6"
+      cmd_parameter: "-a"
+    - name: "maintenance daily"
+      hour: "6"
+      minute: "0"
+      dow: "0-6"
+      cmd_parameter: "-m"
+  
+
+# vim: ts=2 sw=2 expandtab syntax=yaml
+

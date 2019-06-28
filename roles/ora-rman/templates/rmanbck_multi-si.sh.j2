@@ -1,0 +1,36 @@
+#!/bin/bash
+# Version: 0.1.0
+# Author(s):
+#      Walter Curtetti, walter.curtetti@gmail.com
+#
+
+currentDir=`dirname $0`
+typeBackup=$1
+arrayExcluded=( DB1 DB2 )
+excluded=0
+listdb=`cat /etc/oratab | grep -e ".*:.*:.*" | grep -v ORACLE_SID | cut -d: -f1`
+echo "listdb = $listdb"
+numDb=`echo "$listdb" | wc -l`
+for i in `seq 1 $numDb`; do 
+
+    dbname=`echo "$listdb" | head -$i | tail -1`
+    echo "dbname = $dbname"
+
+    for exc in "${arrayExcluded[@]}"; do 
+        if [ "$dbname" == "$exc" ] ; then
+            echo "dbname $dbname excluded for backup"
+            excluded=1
+            break 1
+        else
+            excluded=0
+        fi
+    done
+    
+    if [ $excluded -eq 1 ] ; then
+        $currentDir/rmanbck.sh $typeBackup $dbname || echo "ERROR in call rman script"
+    fi
+
+done
+
+
+exit 0

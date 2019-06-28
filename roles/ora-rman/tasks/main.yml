@@ -1,0 +1,250 @@
+---
+
+  - name: "Understand if use sysvinit of systemd"
+    command: cat /proc/1/comm
+    ignore_errors: yes
+    register: initsystem
+    tags:
+      - rmanbck
+      - checkusysinit
+      - rmansysvinit
+
+  - debug: var=initsystem.stdout
+    tags:
+      - rmanbck
+      - checkusysinit
+      - rmansysvinit
+    ignore_errors: yes
+
+  - name: create directory structure of rman backup if they don't exist (1)
+    file:
+      path: "{{ bck_rman_basedir_script }}/{{ item }}"
+      state: directory
+      owner: oracle
+      group: oinstall
+      mode: 0775
+    with_items:
+      - scripts/conf
+      - ARCHLOG
+      - CRS
+      - DB
+      - EXPDP
+      - log
+      - SPF
+    ignore_errors: true
+    tags:
+      - rmanbck
+      - rmandir
+
+  - name: Search ORACLE_SID
+    shell:  ps -ef | grep -w "ora_pmon_{{ item.oracle_db_name }}.*" |grep -v grep | sed 's/^.*pmon_//g'
+    with_items: "{{oracle_databases}}"
+    register: dbs
+    tags:
+      - rmanbck
+      - rmandir
+
+  - name: create directory structure of rman backup if they don't exist (2)
+    file:
+      path: "{{ bck_rman_basedir_script }}/DB/{{ item.1.stdout }}"
+      state: directory
+      owner: oracle
+      group: oinstall
+      mode: 0775
+    with_together:
+      - "{{oracle_databases}}"
+      - "{{dbs.results}}"
+    ignore_errors: true
+    tags:
+      - rmanbck
+      - rmandir
+
+  - name: create directory structure of rman backup if they don't exist (3)
+    file:
+      path: "{{ bck_rman_basedir_script }}/ARCHLOG/{{ item.1.stdout }}"
+      state: directory
+      owner: oracle
+      group: oinstall
+      mode: 0775
+    with_together:
+      - "{{oracle_databases}}"
+      - "{{dbs.results}}"
+    ignore_errors: true
+    tags:
+      - rmanbck
+      - rmandir
+
+  - name: create directory structure of rman backup if they don't exist (4)
+    file:
+      path: "{{ bck_rman_basedir_script }}/SPF/{{ item.1.stdout }}"
+      state: directory
+      owner: oracle
+      group: oinstall
+      mode: 0775
+    with_together:
+      - "{{oracle_databases}}"
+      - "{{dbs.results}}"
+    ignore_errors: true
+    tags:
+      - rmanbck
+      - rmandir
+
+  - name: create directory structure of rman backup if they don't exist (5)
+    file:
+      path: "{{ bck_rman_basedir_script }}/{{ item }}"
+      state: directory
+      owner: oracle
+      group: oinstall
+      mode: 0777
+    with_items:
+      - ASM
+    ignore_errors: true
+    tags:
+      - rmanbck
+      - rmandir
+
+  - name: Copy rman scripts for backup (1)
+    template: src={{ item }} dest={{ bck_rman_basedir_script }}/scripts/conf/{{ item | basename | regex_replace('.j2','') }} owner={{ oracle_user }} group={{ oracle_group }} mode=644 backup=yes
+    with_fileglob:
+      - templates/rmanbck.cfg.j2
+    tags:
+      - rmanbck
+      - rmanscript
+      - rmanscriptcfg
+
+  - name: Copy rman scripts for backup (2)
+    template: src={{ item }} dest={{ bck_rman_basedir_script }}/scripts/{{ item | basename | regex_replace('.j2','') }} owner={{ oracle_user }} group={{ oracle_group }} mode=755 backup=no
+    with_fileglob:
+      - templates/rmanbck.sh.j2
+    tags:
+      - rmanbck
+      - rmanscript
+      - rmanscriptsh
+
+  - name: Copy rman scripts for backup (3)
+    template: src={{ item }} dest={{ bck_rman_basedir_script }}/scripts/{{ item | basename | regex_replace('.j2','') }} owner={{ oracle_user }} group={{ oracle_group }} mode=644 backup=no
+    with_fileglob:
+      - templates/asmbck.sh.j2    
+      - templates/ocrbck.sh.j2    
+    when: configure_cluster
+    tags:
+      - rmanbck
+      - rmanscript
+
+  - name: Copy rman scripts for backup (4)
+    template: src={{ item }} dest={{ bck_rman_basedir_script }}/scripts/{{ item | basename | regex_replace('-rac.sh.j2','.sh') }} owner={{ oracle_user }} group={{ oracle_group }} mode=755 backup=no
+    with_fileglob:
+      - templates/rmanbck_multi-rac.sh.j2
+    when: configure_cluster
+    tags:
+      - rmanbck
+      - rmanscript
+
+  - name: Copy rman scripts for backup (5)
+    template: src={{ item }} dest={{ bck_rman_basedir_script }}/scripts/{{ item | basename | regex_replace('-si.sh.j2','.sh') }} owner={{ oracle_user }} group={{ oracle_group }} mode=755 backup=no
+    with_fileglob:
+      - templates/rmanbck_multi-si.sh.j2
+    when: not configure_cluster
+    tags:
+      - rmanbck
+      - rmanscript
+      - rmanmulti
+
+  - name: Creates a entry in cron file under user oracle
+    cron:
+      name: backup rman {{ bck_entry.name }}
+      hour: "{{ bck_entry.hour }}"
+      minute: "{{ bck_entry.minute }}"
+      weekday: "{{ bck_entry.dow }}" 
+      user: oracle
+      job: "/backup_rman/oracle_rman/scripts/rmanbck_multi.sh {{ bck_entry.cmd_parameter }}"
+    with_items:
+       - "{{ bck_rman_planning }}"
+    loop_control:
+      loop_var: bck_entry
+    when: initsystem.stdout == "init"
+    tags:
+      - rmanbck
+      - rmansysvinit
+      - rmancrontab
+
+  - name: Create rman systemd unit for full backup (1)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-asm*.j2    
+    when: configure_cluster and initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmanasm
+
+  - name: Create rman systemd unit for full backup (2)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-ocr*.j2    
+    when: configure_cluster and initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmanocr
+
+  - name: Create rman systemd unit for full backup (3)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-arch*.j2    
+    when: initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmanarch
+
+  - name: Create rman systemd unit for full backup (4)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-cumul*.j2    
+    when: initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmancumul
+
+  - name: Create rman systemd unit for full backup (5)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-full*.j2    
+    when: initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmanfull
+
+  - name: Create rman systemd unit for full backup (6)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-incr*.j2    
+    when: initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmanincr
+
+  - name: Create rman systemd unit for full backup (7)
+    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+    with_fileglob:
+      - templates/oracle-backup-maint*.j2    
+    when: initsystem.stdout == "systemd"
+    tags:
+      - rmanbck
+      - rmansystemd
+      - rmanmaint
+
+#  - name: Change RMAN env parameter
+#    template: src={{ item }} dest={{ systemd_location }}/{{ item | basename | regex_replace('.j2','') }} mode=644 backup=no
+#    with_fileglob:
+#      - templates/oracle-backup-maint*.j2    
+#    when: initsystem.stdout == "systemd"
+#    tags:
+#      - rmanbck
+#      - rmansystemd
+
+# vim: ts=2 sw=2 expandtab
